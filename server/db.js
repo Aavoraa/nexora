@@ -8,6 +8,8 @@ pg.types.setTypeParser(1082, (v) => v);
 
 export const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL || 'postgres://postgres@localhost:5432/cadence',
+  // Serverless instances are many and short-lived: keep each one's share of connections small.
+  max: process.env.VERCEL ? 3 : 10,
 });
 
 /** Run a parameterised query and return all rows. */

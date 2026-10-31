@@ -11,7 +11,8 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import express from 'express';
 
-const ROOT = path.resolve(process.env.MEDIA_DIR || path.join('data', 'media'));
+// On Vercel only /tmp is writable, and it is per instance and temporary: real media needs object storage there.
+const ROOT = path.resolve(process.env.MEDIA_DIR || (process.env.VERCEL ? '/tmp/nexora-media' : path.join('data', 'media')));
 const SECRET = process.env.MEDIA_SIGNING_SECRET
   ? Buffer.from(process.env.MEDIA_SIGNING_SECRET)
   : crypto.randomBytes(32); // Fine for one process: URLs expire within the hour anyway.

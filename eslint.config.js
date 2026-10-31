@@ -5,7 +5,7 @@ export default [
   { ignores: ['node_modules/', 'data/'] },
   js.configs.recommended,
   {
-    files: ['server/**/*.js', 'tests/**/*.js', 'scripts/**/*.js', 'eslint.config.js'],
+    files: ['server/**/*.js', 'api/**/*.js', 'tests/**/*.js', 'scripts/**/*.js', 'eslint.config.js'],
     languageOptions: { ecmaVersion: 2024, sourceType: 'module', globals: globals.node },
   },
   {

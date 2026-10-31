@@ -1,4 +1,4 @@
-# Cadence
+# Nexora
 
 Plan, write, approve and schedule social posts as a team.
 
@@ -47,6 +47,23 @@ Node.js 22+ and Express, PostgreSQL through `pg`, a dependency-free vanilla-JS S
 3. Open http://localhost:3000 and choose **Create workspace**.
 
 Use `npm run dev` to restart automatically when files change.
+
+## Deploying to Vercel
+
+`vercel.json` serves `public/` as static files and sends `/api/*`, `/b/*`, `/r/*`, `/l/*` and `/media-store/*` to one function, `api/index.js`, which runs the Express app. Tables are created on the first request.
+
+1. **Database:** Vercel can't reach a PostgreSQL on your own computer. Create a hosted one (for example Neon, Supabase, or Postgres from the Vercel Marketplace) and copy its connection string (with `sslmode=require`).
+2. **Environment variables** (Vercel → Project → Settings → Environment Variables), then redeploy:
+   - `DATABASE_URL`: the hosted connection string
+   - `MEDIA_SIGNING_SECRET`: any long random string. Required on Vercel: each instance would otherwise sign links with a different key.
+   - `TOKEN_ENCRYPTION_KEY`: 32 random bytes, base64 (see `.env.example`)
+   - `CRON_SECRET`: any long random string. Protects `/api/cron/tick`.
+   - optional: `ANTHROPIC_API_KEY` for a platform AI key
+3. **Demo data (optional):** run `npm run seed` on your computer with `DATABASE_URL` (and `SEED_PASSWORD`) pointing at the hosted database.
+
+**Background jobs:** serverless has no timers. Due posts are published when the app gets requests (at most once a minute per instance). `/api/cron/tick` publishes due posts, sends loan reminders and clears stale uploads. Vercel Cron calls it daily, the most the Hobby plan allows. For minute-level publishing without traffic, call it from an external scheduler with the header `Authorization: Bearer <CRON_SECRET>`.
+
+**Media uploads:** files are stored on local disk, which on Vercel is temporary and separate for each instance, so uploaded videos and images are **not kept** there. Real media hosting needs an object-storage driver (Vercel Blob, S3 or R2). Not built yet.
 
 ## Layout
 

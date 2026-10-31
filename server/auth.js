@@ -41,7 +41,7 @@ export async function startSession(res, userId, remember = true) {
   res.cookie(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.NODE_ENV === 'production' || !!process.env.VERCEL,
     ...(remember ? { expires } : {}),
   });
 }

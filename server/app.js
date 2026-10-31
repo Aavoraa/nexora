@@ -5,6 +5,9 @@ import { loadUser } from './auth.js';
 import { api } from './api.js';
 import { storageRouter } from './storage.js';
 import { publicLinks } from './links.js';
+import { runDuePosts } from './publisher.js';
+import { runReminders } from './loans.js';
+import { cleanupStaleUploads } from './media.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(here, '..', 'public');
@@ -13,7 +16,8 @@ const publicDir = path.join(here, '..', 'public');
 export function createApp() {
   const app = express();
   app.disable('x-powered-by');
-  app.set('trust proxy', 'loopback');
+  // Behind Vercel's proxy the client address is in X-Forwarded-For (needed for rate limits and secure cookies).
+  app.set('trust proxy', process.env.VERCEL ? true : 'loopback');
 
   app.use((req, res, next) => {
     res.set({
@@ -22,6 +26,18 @@ export function createApp() {
       'X-Frame-Options': 'DENY',
     });
     next();
+  });
+
+  // Scheduled work for hosts without long-running timers (Vercel Cron, or any external cron).
+  // Needs CRON_SECRET; the caller sends "Authorization: Bearer <CRON_SECRET>".
+  app.get('/api/cron/tick', async (req, res) => {
+    const secret = process.env.CRON_SECRET;
+    if (!secret || req.get('authorization') !== `Bearer ${secret}`) return res.status(401).json({ error: 'Unauthorized' });
+    const results = {};
+    for (const [name, job] of [['posts', runDuePosts], ['reminders', () => runReminders()], ['uploads', () => cleanupStaleUploads()]]) {
+      try { await job(); results[name] = 'ok'; } catch (err) { console.error(`[cron] ${name}`, err); results[name] = 'failed'; }
+    }
+    res.json(results);
   });
 
   app.use('/api', express.json({ limit: '200kb' }), loadUser, api);

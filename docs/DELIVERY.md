@@ -102,6 +102,7 @@ Credentials are shared only through the secure vault, never by email (SOP).
 
 | Date | Check | Result |
 |---|---|---|
+| 31-10-2026 | Vercel deployment: `api/index.js` entry, `vercel.json` rewrites, `/api/cron/tick` (CRON_SECRET), proxy trust, small pool. Local handler check: /api/me 200, cron 401 without secret and 200 with it, public page 200. `npm test` 90/90, lint, check. **Open:** hosted database and env vars to set in Vercel; media uploads need object storage on Vercel | Pass |
 | 31-10-2026 | Nexora "Clean & calm" theme (navy, teal, coral; Manrope + Inter; light sidebar; new logo and favicon): `npm test` 90/90, lint, check. Edge screenshots of sign-in, home, calendar, library and composer at 1440px | Pass |
 | 31-10-2026 | Reports + Library (D16): `npm test` 90/90 (5 new), lint, check. Edge screenshots 1440px + 390px, print-to-PDF render. Browser: search and filters, Use → draft opened with text, Save to library from the editor, approve, month back and forth, all brands. Test data removed afterwards. | Pass |
 | 31-10-2026 | Link in bio & tracked links (D15): `npm test` 85/85 (new link tests), lint, check. Edge screenshots 1440px + 390px. Browser: save a page (bare address got https://), public page renders, button and short-link clicks counted, UTM short link created. One bug found and fixed (a regex escape was lost, which doubled the https:// on a full URL). | Pass |
