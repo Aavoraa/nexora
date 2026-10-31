@@ -1,0 +1,6 @@
+node_modules/
+.env
+data/
+.claude/settings.local.json
+scripts/.*-tmp.mjs
+*.log
