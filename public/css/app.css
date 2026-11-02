@@ -79,8 +79,7 @@ button.primary {
 }
 button.primary:hover { filter: none; background: #075c58; box-shadow: 0 4px 12px rgb(11 122 117 / .28); }
 button.danger { color: var(--danger); }
-button.danger:hover { background: color-mix(in srgb, var(--danger) 10%, transparent); }
-button.ghost { border-color: transparent; background: transparent; }
+button.danger:hover { background: color-mix(in srgb, var(--danger) 10%, transparent); }button.ghost { border-color: transparent; background: transparent; }
 button.sm { padding: 5px 11px; font-size: 13px; border-radius: 8px; }
 input, select, textarea {
   font: inherit; color: var(--text); background: var(--panel);
@@ -796,7 +795,6 @@ tbody tr:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); 
   .cal .ev time { display: none; }
   .bar { grid-template-columns: 80px 1fr 32px; }
 }
-}
 
 /* ---------- dialogs ---------- */
 .dlg { border: 0; border-radius: 20px; padding: 24px; width: min(560px, calc(100vw - 32px)); box-shadow: var(--shadow-lift); color: var(--text); }
@@ -805,6 +803,8 @@ tbody tr:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); 
 fieldset.consents { border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px 12px; display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0; }
 fieldset.consents legend { font-size: 13px; font-weight: 600; color: var(--muted); padding: 0 4px; }
 .field-label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
+input.upper { text-transform: uppercase; }
+input.upper::placeholder { text-transform: none; }
 
 /* ---------- loan reminders ---------- */
 .ln-tabs { margin: 0 0 20px; flex-wrap: wrap; }

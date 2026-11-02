@@ -1136,7 +1136,7 @@ views.media = async () => {
     views.media.t = setTimeout(route, 800); // refresh the grid once a batch settles
   });
   document.querySelectorAll('[data-del-media]').forEach((btn) => btn.onclick = () => act(btn, async () => {
-    if (!confirm('Delete this media? This cannot be undone.')) return;
+    if (!await confirmDialog('Delete media?', 'This media will be deleted. This cannot be undone.')) return;
     const r = await api(`/media/${btn.dataset.delMedia}`, { method: 'DELETE', body: {} });
     toast(r.result === 'archived' ? 'Removed from the library (kept for published posts)' : 'Media deleted');
     route();
@@ -1344,7 +1344,7 @@ views.compose = async (arg = '') => {
     done('Sent back to the author');
   });
   on('delete', async () => {
-    if (!confirm('Delete this post? This cannot be undone.')) return;
+    if (!await confirmDialog('Delete post?', 'This post will be deleted. This cannot be undone.')) return;
     await api(`/posts/${post.id}`, { method: 'DELETE', body: {} });
     toast('Post deleted');
     location.hash = '#/posts';
@@ -1680,15 +1680,16 @@ views.writing = async () => {
 /**
  * Show a modal form. `onSubmit(form)` may throw to show an error; resolve to close.
  * Uses the native <dialog>, so focus trapping and Esc work out of the box.
+ * `submitClass` is 'danger' for destructive actions (red text, per the design system).
  */
-function openDialog(title, bodyHtml, onSubmit, submitLabel = 'Save') {
+function openDialog(title, bodyHtml, onSubmit, submitLabel = 'Save', submitClass = 'primary') {
   const dlg = document.createElement('dialog');
   dlg.className = 'dlg';
   dlg.innerHTML = `<form method="dialog" class="stack" novalidate>
     <div class="row"><h2 class="grow" style="margin:0">${esc(title)}</h2><button type="button" class="icon-btn" data-close aria-label="Close">✕</button></div>
     ${bodyHtml}
     <div class="error" role="alert"></div>
-    <div class="row" style="justify-content:flex-end"><button type="button" data-close>Cancel</button><button class="primary" value="ok">${esc(submitLabel)}</button></div>
+    <div class="row" style="justify-content:flex-end"><button type="button" data-close>Cancel</button><button class="${submitClass}" value="ok">${esc(submitLabel)}</button></div>
   </form>`;
   document.body.append(dlg);
   const form = dlg.querySelector('form');
@@ -1698,7 +1699,7 @@ function openDialog(title, bodyHtml, onSubmit, submitLabel = 'Save') {
   dlg.addEventListener('cancel', () => setTimeout(() => dlg.remove()));
   form.onsubmit = async (e) => {
     e.preventDefault();
-    const btn = form.querySelector('button.primary');
+    const btn = form.querySelector('button[value="ok"]');
     btn.disabled = true;
     try {
       await onSubmit(form);
@@ -1712,6 +1713,20 @@ function openDialog(title, bodyHtml, onSubmit, submitLabel = 'Save') {
   dlg.showModal();
   dlg.querySelector('input, textarea, select')?.focus();
   return dlg;
+}
+
+/**
+ * In-app replacement for window.confirm() on destructive actions.
+ * Resolves true on the danger action button; false on Cancel, ✕ or Esc.
+ */
+function confirmDialog(title, message, actionLabel = 'Delete') {
+  return new Promise((resolve) => {
+    const dlg = openDialog(title, `<p style="margin:0">${esc(message)}</p>`, async () => resolve(true), actionLabel, 'danger');
+    dlg.querySelector('button[value="ok"]').focus();
+    dlg.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', () => resolve(false)));
+    dlg.addEventListener('cancel', () => resolve(false));
+    dlg.addEventListener('close', () => resolve(false));
+  });
 }
 
 // ---------- loan reminders ----------
@@ -1909,7 +1924,7 @@ views.loans = async (arg = 'overview') => {
         route();
       }));
       row.querySelector('[data-del]')?.addEventListener('click', (e) => act(e.currentTarget, async () => {
-        if (!confirm('Delete this group? Its customers stay, without a group.')) return;
+        if (!await confirmDialog('Delete group?', 'Its customers stay, without a group.')) return;
         await api(`/loans/groups/${id}`, { method: 'DELETE', body: {} });
         route();
       }));
@@ -2121,7 +2136,7 @@ async function loanCustomerView(id, head, wire) {
     route();
   }, 'Send');
   document.getElementById('cu-del').onclick = (e) => act(e.currentTarget, async () => {
-    if (!confirm(`Delete ${c.name} and all their loans? This cannot be undone.`)) return;
+    if (!await confirmDialog(`Delete ${c.name}?`, `${c.name} and all their loans will be deleted. This cannot be undone.`)) return;
     await api(`/loans/customers/${c.id}`, { method: 'DELETE', body: {} });
     location.hash = '#/loans/customers';
   });
@@ -2130,7 +2145,7 @@ async function loanCustomerView(id, head, wire) {
     route();
   }));
   document.querySelectorAll('[data-del-loan]').forEach((b) => b.onclick = () => act(b, async () => {
-    if (!confirm('Delete this loan and its schedule?')) return;
+    if (!await confirmDialog('Delete loan?', 'This loan and its repayment schedule will be deleted.')) return;
     await api(`/loans/loans/${b.dataset.delLoan}`, { method: 'DELETE', body: {} });
     route();
   }));
@@ -2241,7 +2256,7 @@ function bindAiSetup(ai) {
       route();
     }));
     document.getElementById('ai-remove')?.addEventListener('click', (e) => act(e.currentTarget, async () => {
-      if (!confirm(`Remove the saved ${p.label} key?`)) return;
+      if (!await confirmDialog(`Remove ${p.label} key?`, `The saved ${p.label} key will be removed from this workspace.`, 'Remove key')) return;
       await api(`/ai/settings/${pick}`, { method: 'DELETE', body: {} });
       state.aiEnabled = (await api('/me')).ai_enabled;
       toast(`${p.label} key removed`);
@@ -2519,7 +2534,7 @@ views.links = async () => {
   };
   document.querySelectorAll('[data-copy-short]').forEach((btn) => btn.onclick = () => copyText(`${location.origin}/l/${btn.dataset.copyShort}`, 'Short link'));
   document.querySelectorAll('[data-del-short]').forEach((btn) => btn.onclick = () => act(btn, async () => {
-    if (!confirm('Delete this link? It will stop working anywhere it has been shared.')) return;
+    if (!await confirmDialog('Delete link?', 'It will stop working anywhere it has been shared.')) return;
     await api(`/links/${btn.dataset.delShort}`, { method: 'DELETE', body: {} });
     toast('Link deleted');
     route();
@@ -2619,7 +2634,7 @@ views.library = async () => {
       route();
     }));
     grid.querySelectorAll('[data-del]').forEach((btn) => btn.onclick = () => act(btn, async () => {
-      if (!confirm(`Delete “${byId(btn.dataset.del).title}” from the library? Posts made from it are not affected.`)) return;
+      if (!await confirmDialog(`Delete “${byId(btn.dataset.del).title}”?`, 'It will be removed from the library. Posts made from it are not affected.')) return;
       await api(`/library/${btn.dataset.del}`, { method: 'DELETE', body: {} });
       toast('Removed from the library');
       route();
@@ -2749,6 +2764,67 @@ views.reports = async () => {
 
 // ---------- brands & channels ----------
 
+/** New brand: name, colour, voice and an optional first channel, created together. */
+function addBrandDialog() {
+  openDialog('Add brand', `
+    <div class="row" style="align-items:flex-end">
+      <label class="field grow"><span>Brand name</span><input name="name" required maxlength="80" placeholder="e.g. Priya Shah, Home Loans"></label>
+      <label class="field"><span>Colour</span><input type="color" name="color" value="#0b7a75"></label>
+    </div>
+    <label class="field"><span>GSTIN</span><input name="gstin" required maxlength="15" autocomplete="off" spellcheck="false"
+      class="upper" placeholder="15 characters, e.g. 27AAPFU0939F1ZV"></label>
+    <label class="field"><span>Brand voice (used for AI drafts, optional)</span>
+      <textarea name="voice" style="min-height:70px" maxlength="2000" placeholder="Warm, witty, never salesy. Short sentences. Uses British spelling."></textarea></label>
+    <div>
+      <span class="field-label">First channel (optional)</span>
+      <div class="row">
+        <select name="platform" style="width:auto" aria-label="Network">${Object.entries(state.platforms).map(([k, p]) => `<option value="${k}">${p.label}</option>`).join('')}</select>
+        <input class="grow" name="handle" placeholder="@handle" maxlength="100" aria-label="Account handle">
+      </div>
+    </div>
+    <p class="muted small" style="margin:0">New brands get a weekday 10:00 queue. You can add more channels after.</p>`,
+  async (form) => {
+    const f = form.elements;
+    const name = f.namedItem('name').value.trim();
+    if (!name) throw new Error('Brand name is required');
+    const gstin = f.namedItem('gstin').value.trim();
+    if (!gstin) throw new Error('GSTIN is required');
+    const handle = f.namedItem('handle').value.trim();
+    const b = await api('/brands', { method: 'POST', body: {
+      name, gstin, color: f.namedItem('color').value, voice: f.namedItem('voice').value,
+      channels: handle ? [{ platform: f.namedItem('platform').value, handle }] : [],
+    } });
+    state.brandId = b.id;
+    try { localStorage.setItem('cadence.brand', state.brandId); } catch { /* storage unavailable */ }
+    toast(`${b.name} added`);
+    route();
+  }, 'Add brand');
+}
+
+/** Deleting a brand cascades widely, so the admin types its name to confirm. */
+function deleteBrandDialog(b) {
+  const dlg = openDialog(`Delete ${b.name}?`, `
+    <p style="margin:0">This permanently deletes the brand and everything that belongs to it:</p>
+    <ul class="small" style="margin:0;padding-left:20px">
+      <li>all of its posts, including scheduled ones</li>
+      <li>its ${b.channels.length === 1 ? 'channel' : `${b.channels.length} channels`} and queue slots</li>
+      <li>its link-in-bio page and click history</li>
+      <li>library items saved for this brand only</li>
+    </ul>
+    <p class="muted small" style="margin:0">Short links and library items for all brands are kept. This cannot be undone.</p>
+    <label class="field"><span>Type <strong>${esc(b.name)}</strong> to confirm</span>
+      <input name="confirm" autocomplete="off" spellcheck="false"></label>`,
+  async (form) => {
+    if (form.elements.namedItem('confirm').value.trim() !== b.name) throw new Error('The name doesn’t match. Type it exactly as shown.');
+    await api(`/brands/${b.id}`, { method: 'DELETE', body: {} });
+    toast(`${b.name} deleted`);
+    route();
+  }, 'Delete brand', 'danger');
+  const btn = dlg.querySelector('button[value="ok"]');
+  btn.disabled = true;
+  dlg.querySelector('[name="confirm"]').oninput = (e) => { btn.disabled = e.target.value.trim() !== b.name; };
+}
+
 views.brands = async () => {
   await loadBrands();
   const admin = can.admin();
@@ -2759,6 +2835,9 @@ views.brands = async () => {
           <input type="color" value="${esc(b.color)}" data-k="color" ${admin ? '' : 'disabled'} aria-label="Brand colour">
           <input class="grow" value="${esc(b.name)}" data-k="name" maxlength="80" ${admin ? '' : 'readonly'} aria-label="Brand name">
         </div>
+        <label class="field"><span>GSTIN${b.gstin ? '' : ' <span class="muted small">(not added yet)</span>'}</span>
+          <input value="${esc(b.gstin || '')}" data-k="gstin" maxlength="15" autocomplete="off" spellcheck="false" class="upper"
+            placeholder="15 characters" ${admin ? '' : 'readonly'}></label>
         <label class="field"><span>Brand voice (used for AI drafts)</span>
           <textarea data-k="voice" style="min-height:70px" maxlength="2000" placeholder="Warm, witty, never salesy. Short sentences. Uses British spelling." ${admin ? '' : 'readonly'}>${esc(b.voice)}</textarea></label>
         ${admin ? `<div class="row"><button class="sm" data-save>Save brand</button>
@@ -2778,33 +2857,25 @@ views.brands = async () => {
     </div>`);
 
   if (!admin) return;
-  document.getElementById('add-brand').onclick = (e) => act(e.currentTarget, async () => {
-    const name = prompt('Brand name');
-    if (!name) return;
-    const b = await api('/brands', { method: 'POST', body: { name } });
-    state.brandId = b.id;
-    route();
-  });
+  document.getElementById('add-brand').onclick = addBrandDialog;
   document.querySelectorAll('[data-brand]').forEach((card) => {
     const id = Number(card.dataset.brand);
     const val = (k) => card.querySelector(`[data-k="${k}"]`).value;
     card.querySelector('[data-save]').onclick = (e) => act(e.currentTarget, async () => {
-      await api(`/brands/${id}`, { method: 'PATCH', body: { name: val('name'), color: val('color'), voice: val('voice') } });
+      // Older brands may have no GSTIN yet; leaving it blank keeps it that way.
+      const gstin = val('gstin').trim();
+      await api(`/brands/${id}`, { method: 'PATCH', body: { name: val('name'), color: val('color'), voice: val('voice'), ...(gstin && { gstin }) } });
       toast('Brand saved');
       route();
     });
-    card.querySelector('[data-del-brand]')?.addEventListener('click', (e) => act(e.currentTarget, async () => {
-      if (!confirm('Delete this brand and all of its posts? This cannot be undone.')) return;
-      await api(`/brands/${id}`, { method: 'DELETE', body: {} });
-      route();
-    }));
+    card.querySelector('[data-del-brand]')?.addEventListener('click', () => deleteBrandDialog(state.brands.find((x) => x.id === id)));
     card.querySelector('[data-add-ch]').onclick = (e) => act(e.currentTarget, async () => {
       await api(`/brands/${id}/channels`, { method: 'POST',
         body: { platform: card.querySelector('[data-platform]').value, handle: card.querySelector('[data-handle]').value } });
       route();
     });
     card.querySelectorAll('[data-del-ch]').forEach((btn) => btn.onclick = () => act(btn, async () => {
-      if (!confirm('Remove this channel? Posts already scheduled to it will skip it.')) return;
+      if (!await confirmDialog('Remove channel?', 'Posts already scheduled to it will skip it.', 'Remove channel')) return;
       await api(`/brands/${id}/channels/${btn.dataset.delCh}`, { method: 'DELETE', body: {} });
       route();
     }));
@@ -2869,7 +2940,7 @@ views.team = async () => {
       toast('Updated');
     }));
     row.querySelector('[data-remove]')?.addEventListener('click', (e) => act(e.currentTarget, async () => {
-      if (!confirm('Remove this person from the workspace?')) return;
+      if (!await confirmDialog('Remove team member?', 'They will lose access to this workspace. Their posts stay.', 'Remove')) return;
       await api(`/team/${id}`, { method: 'DELETE', body: {} });
       route();
     }));

@@ -8,6 +8,7 @@ import { PLATFORMS } from './platforms.js';
 import { generateDrafts } from './ai.js';
 import { aiSettings, aiAvailable } from './aiproviders.js';
 import { upcomingSlots, isValidTimeZone } from './time.js';
+import { normalizeGstin } from './gstin.js';
 import { loginLimit, registerLimit, aiLimit } from './ratelimit.js';
 import { loans } from './loans.js';
 import { integrations } from './integrations.js';
@@ -210,30 +211,48 @@ api.get('/brands', ah(async (req, res) => {
 }));
 
 const HEX = /^#[0-9a-f]{6}$/i;
+const gstinOf = (v) => normalizeGstin(v) || fail(400, str(v, 40) ? 'Enter a valid 15-character GSTIN' : 'GSTIN is required');
 
 api.post('/brands', requireRole('admin'), ah(async (req, res) => {
   const name = str(req.body.name, 80) || fail(400, 'Brand name is required');
+  const gstin = gstinOf(req.body.gstin);
   const color = HEX.test(req.body.color) ? req.body.color : '#6d5efc';
+  // Optional first channels, validated up front so a bad one creates nothing.
+  const wanted = Array.isArray(req.body.channels) ? req.body.channels.slice(0, Object.keys(PLATFORMS).length) : [];
+  const chans = wanted.map((ch) => ({
+    platform: PLATFORMS[ch?.platform] ? ch.platform : fail(400, 'Unknown platform'),
+    handle: str(ch?.handle, 100).replace(/^@/, '') || fail(400, 'Account handle is required'),
+  }));
   const brand = await tx(async (c) => {
-    const b = (await c.query('INSERT INTO brands (workspace_id, name, color, voice) VALUES ($1, $2, $3, $4) RETURNING *',
-      [req.user.workspace_id, name, color, str(req.body.voice, 2000)])).rows[0];
+    const b = (await c.query('INSERT INTO brands (workspace_id, name, gstin, color, voice) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [req.user.workspace_id, name, gstin, color, str(req.body.voice, 2000)])).rows[0];
     for (let wd = 1; wd <= 5; wd++) {
       await c.query('INSERT INTO queue_slots (brand_id, weekday, time) VALUES ($1, $2, $3)', [b.id, wd, '10:00']);
+    }
+    b.channels = [];
+    for (const ch of chans) {
+      b.channels.push((await c.query('INSERT INTO channels (brand_id, platform, handle) VALUES ($1, $2, $3) RETURNING *',
+        [b.id, ch.platform, ch.handle])).rows[0]);
     }
     return b;
   });
   await logActivity(req.user.workspace_id, req.user.id, 'brand.created', name);
-  res.status(201).json({ ...brand, channels: [] });
+  for (const ch of chans) {
+    await logActivity(req.user.workspace_id, req.user.id, 'channel.added', `${PLATFORMS[ch.platform].label} @${ch.handle}`);
+  }
+  res.status(201).json(brand);
 }));
 
 api.patch('/brands/:id', requireRole('admin'), ah(async (req, res) => {
   const b = await brandFor(req, intId(req.params.id));
   const updated = await one(`
     UPDATE brands SET name = COALESCE(NULLIF($2, ''), name), color = COALESCE($3, color),
-      voice = COALESCE($4, voice)
+      voice = COALESCE($4, voice), gstin = COALESCE($5, gstin)
     WHERE id = $1 RETURNING *`,
     [b.id, str(req.body.name, 80), HEX.test(req.body.color) ? req.body.color : null,
-      typeof req.body.voice === 'string' ? str(req.body.voice, 2000) : null]);
+      typeof req.body.voice === 'string' ? str(req.body.voice, 2000) : null,
+      // Once set, a GSTIN can be corrected but not cleared.
+      req.body.gstin === undefined ? null : gstinOf(req.body.gstin)]);
   res.json(updated);
 }));
 

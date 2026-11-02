@@ -158,14 +158,15 @@
 |---|---|
 | Status | Built (channels are publish targets only; see Feature 9) |
 | Purpose | Keep each brand's networks, voice and schedule separate. |
-| User Flow | Admin → Brands & channels → edit the name, colour and voice, or add a channel (network + handle). Brand switcher in the sidebar. |
-| Inputs | Brand name, colour, voice notes (≤ 2000 chars), network, handle. |
+| User Flow | Admin → Brands & channels → **+ Add brand** (name, GSTIN, colour, voice and an optional first channel), edit the name, GSTIN, colour and voice, or add a channel (network + handle). Brand switcher in the sidebar. |
+| Inputs | Brand name, GSTIN (required for a new brand, D18), colour, voice notes (≤ 2000 chars), network, handle. |
 | Outputs | Brand with channels. The selected brand filters the Calendar, Posts, Queue and Analytics. |
 
 **Acceptance Criteria:**
 - Networks supported for planning: X, Threads, LinkedIn, Instagram, Facebook, TikTok, Pinterest and YouTube, each with its character limit.
 - A workspace always has at least one brand.
-- Deleting a brand asks for confirmation and removes its posts, channels and queue.
+- A new brand can't be added without a valid GSTIN (15 characters, correct check character). Brands made before D18 can add one later; once set it can be corrected but not removed.
+- Deleting a brand asks for confirmation (the admin types the brand name) and removes its posts, channels and queue.
 
 **Edge Cases:**
 - A channel removed while a post is scheduled to it → the post skips it, and fails if it has no channels left.
@@ -484,6 +485,7 @@ No preference was stated for Q2–Q8, so each one takes the **proposed default**
 | D15 | Link in bio and tracked links? (**user decision**) | Yes, built now: each brand gets a public link page and the workspace can create short links with UTM tags. Clicks are counted by Cadence. | Requested by the user, 31-10-2026 | New "Link in bio" page (Feature 14). Adds to the D13 timeline risk (about 4–5 developer-days). |
 | D16 | Reports and Library pages? (**user decision**) | Yes, built now: a monthly report per brand or for all brands, with a PDF download, and a content library of reusable posts that can be marked pre-approved. | Requested by the user, 31-10-2026 | New Features 15 and 16. Scheduled email reports wait for email delivery (D5). Adds to the D13 timeline risk (about 5–6 developer-days). |
 | D17 | Product name? (**user decision**) | The website is called **Nexora** (was Cadence). Visible names are changed: page title, logo, sign-in page, public link pages and report header. Internal names (package, database, file names) stay as they are. Earlier docs still say Cadence and mean the same product. | Requested by the user, 31-10-2026 | Branding only. No behaviour change. |
+| D18 | Must a brand have a GSTIN? (**user decision**) | Yes: adding a brand requires a valid GSTIN, checked for format and check character. Brands that already exist (including each workspace's sign-up default brand) keep working without one and can add it later. GSTINs need not be unique, because several officers' brands can share the branch's registration. | Requested by the user, 02-11-2026 | Feature 3. New `brands.gstin` column. |
 | D8 | Product analytics tool? | None. Metrics come from Cadence's own database, in an owner-only report. | No tracking scripts, no extra cost, no privacy disclosure needed | §9, Feature 8 |
 
 ## 13. Definition of Done

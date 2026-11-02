@@ -49,7 +49,7 @@ The schema is defined in [server/db.js](../server/db.js) (`SCHEMA`) and applied 
 | Field | Value |
 |---|---|
 | Purpose | A client or brand inside a workspace, with its own voice, channels and queue. |
-| Columns | id, workspace_id → workspaces (cascade), name, color (#RRGGBB), voice, created_at |
+| Columns | id, workspace_id → workspaces (cascade), name, gstin (15 chars, uppercase; null only for brands made before D18, including the sign-up default brand), color (#RRGGBB), voice, created_at |
 
 ### channels
 | Field | Value |
