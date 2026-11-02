@@ -32,6 +32,21 @@ The sign-in page has three parts: a product hero with six feature tiles, an auto
 | Forgot password | Shows a note: reset by email isn't available yet (PRD Feature 10). Ask the workspace owner or the Cadence administrator. |
 | Session expired | Any API call returns 401 and the sign-in screen appears. |
 
+## Flow 3a — Add a brand
+
+1. Admin → **Brands & channels** → **+ Add brand**.
+2. The dialog asks for the brand name and GSTIN (both required), colour, voice (optional) and a first channel (optional: network + handle). The GSTIN can be typed in lower case or with spaces; it is saved in upper case.
+3. **Add brand** creates the brand with a weekday 10:00 queue, makes it the selected brand and shows "<name> added".
+
+| Field | Behaviour |
+|---|---|
+| Loading | The **Add brand** button is disabled while saving. |
+| Error | Shown inside the dialog ("Brand name is required", "GSTIN is required", "Enter a valid 15-character GSTIN", "Account handle is required", "Unknown platform"); nothing is created. |
+| Older brands | A brand made before GSTINs were required shows "GSTIN (not added yet)" on its card. Saving with the field blank keeps it blank; once added it can be corrected but not removed. |
+| Cancel | ✕, Cancel or Esc closes the dialog with no changes. |
+| Non-admin | No **+ Add brand** button. |
+| Delete | **Delete brand** (shown only when there is more than one brand) opens a dialog listing what goes with it: posts, channels, queue slots, link-in-bio page and clicks, and brand-only library items. Short links and all-brand library items stay. **Delete brand** stays disabled until the brand name is typed exactly. Success → "<name> deleted". |
+
 ## Flow 3 — Add a channel
 
 1. Admin → **Brands & channels**.

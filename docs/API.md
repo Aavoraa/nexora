@@ -44,8 +44,8 @@ Team rules: the owner, and the caller themselves, can't be changed (403 / 400).
 | Method & path | Role | Body | Success |
 |---|---|---|---|
 | `GET /brands` | any | — | brands with nested `channels[]` |
-| `POST /brands` | admin | `name`, `color?`, `voice?` | 201 brand (default weekday 10:00 slots) |
-| `PATCH /brands/:id` | admin | `name?`, `color?`, `voice?` | brand |
+| `POST /brands` | admin | `name`, `gstin`, `color?`, `voice?`, `channels?: [{platform, handle}]` | 201 brand with nested `channels[]` (default weekday 10:00 slots). GSTIN is stored uppercase. A missing or invalid GSTIN (format or check character) or a bad channel → 400 and nothing is created. |
+| `PATCH /brands/:id` | admin | `name?`, `color?`, `voice?`, `gstin?` | brand. A GSTIN can be added or corrected but not cleared (blank or invalid → 400). |
 | `DELETE /brands/:id` | admin | `{}` | `{ok}`. 400 if it is the last brand. Cascades. |
 | `POST /brands/:id/channels` | admin | `platform`, `handle` | 201 channel (leading `@` removed) |
 | `DELETE /brands/:id/channels/:cid` | admin | `{}` | `{ok}` |

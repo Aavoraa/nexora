@@ -302,6 +302,9 @@ CREATE TABLE IF NOT EXISTS library_items (
 );
 CREATE INDEX IF NOT EXISTS library_items_ws ON library_items (workspace_id, updated_at DESC);
 
+-- ---------- brand GSTIN (required for new brands; older brands may have none) ----------
+ALTER TABLE brands ADD COLUMN IF NOT EXISTS gstin TEXT;
+
 -- ---------- AI provider per workspace (encrypted keys) ----------
 ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS ai_provider TEXT
   CHECK (ai_provider IN ('anthropic','gemini','groq','openrouter'));

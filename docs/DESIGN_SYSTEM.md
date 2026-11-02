@@ -90,7 +90,7 @@ Small 8px · Medium 10–12px (buttons, inputs, nav items) · Large 16px (cards)
 | Primary | Violet gradient, white text, violet glow. One per area. |
 | Secondary | White with a border. Hover tints the border violet. |
 | Approve (board) | Indigo fill. Hover turns violet. |
-| Danger | Red text, always confirmed |
+| Danger | Red text, always confirmed in an in-app dialog (`confirmDialog()` in app.js; never the browser's `confirm()`). The dialog's action button is the same red-text danger button (`openDialog(…, 'danger')`), not a filled primary, and names the action ("Delete", "Remove channel"). Cancel, ✕ and Esc do nothing. Deleting a brand also asks for its name to be typed. |
 | Icon button | 42×42 square (bell, menu, search on mobile) |
 | Press / Disabled / Loading | Scale 0.96 · opacity 0.55 · disabled while working |
 

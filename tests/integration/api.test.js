@@ -4,6 +4,7 @@ import { skipReason, setupApp, client } from '../helpers.js';
 import { makeVideo, makePng } from '../fixtures.js';
 
 const skip = skipReason();
+const GSTIN = '27AAPFU0939F1ZV';
 
 describe('API', { skip }, () => {
   let ctx;
@@ -148,6 +149,54 @@ describe('API', { skip }, () => {
       const p = (await newPost(owner, 'x', [channelId, ch.id])).data;
       assert.deepEqual(p.channel_ids, [channelId]);
     });
+
+    test('a brand can be added with its colour, voice and first channel', async () => {
+      const r = await owner.post('/brands', { name: ' Team South ', gstin: ' 27aapfu0939f1zv ', color: '#118866', voice: 'Plain words.',
+        channels: [{ platform: 'linkedin', handle: '@teamsouth' }] });
+      assert.equal(r.status, 201);
+      assert.equal(r.data.name, 'Team South');
+      assert.equal(r.data.color, '#118866');
+      assert.equal(r.data.voice, 'Plain words.');
+      assert.equal(r.data.gstin, GSTIN);
+      assert.deepEqual(r.data.channels.map((c) => [c.platform, c.handle]), [['linkedin', 'teamsouth']]);
+      assert.equal((await owner.get(`/brands/${r.data.id}/slots`)).data.length, 5);
+      const listed = (await owner.get('/brands')).data.find((b) => b.id === r.data.id);
+      assert.equal(listed.channels.length, 1);
+      assert.equal((await outsider.get('/brands')).data.some((b) => b.id === r.data.id), false);
+    });
+
+    test('a bad first channel adds no brand', async () => {
+      const before = (await owner.get('/brands')).data.length;
+      for (const channels of [[{ platform: 'myspace', handle: 'x' }], [{ platform: 'x', handle: ' @ ' }]]) {
+        const r = await owner.post('/brands', { name: 'Half made', gstin: GSTIN, channels });
+        assert.equal(r.status, 400);
+      }
+      assert.equal((await owner.post('/brands', { name: '   ', gstin: GSTIN })).status, 400);
+      assert.equal((await owner.get('/brands')).data.length, before);
+    });
+
+    test('a new brand needs a valid GSTIN', async () => {
+      const before = (await owner.get('/brands')).data.length;
+      let r = await owner.post('/brands', { name: 'No GSTIN' });
+      assert.equal(r.status, 400);
+      assert.match(r.data.error, /GSTIN is required/);
+      for (const gstin of ['27AAPFU0939F1ZA', '27AAPFU0939F1Z', '00AAPFU0939F1ZV', 'not-a-gstin']) {
+        r = await owner.post('/brands', { name: 'Bad GSTIN', gstin });
+        assert.equal(r.status, 400, gstin);
+        assert.match(r.data.error, /valid 15-character GSTIN/);
+      }
+      assert.equal((await owner.get('/brands')).data.length, before);
+    });
+
+    test('a GSTIN can be added or corrected later but not cleared', async () => {
+      const first = (await owner.get('/brands')).data.find((b) => b.id === brandId);
+      assert.equal(first.gstin, null);
+      assert.equal((await owner.patch(`/brands/${brandId}`, { voice: 'Calm.' })).data.gstin, null);
+      assert.equal((await owner.patch(`/brands/${brandId}`, { gstin: '29aagcb7383j1z4' })).data.gstin, '29AAGCB7383J1Z4');
+      assert.equal((await owner.patch(`/brands/${brandId}`, { gstin: '' })).status, 400);
+      assert.equal((await owner.patch(`/brands/${brandId}`, { gstin: '29AAGCB7383J1Z5' })).status, 400);
+      assert.equal((await owner.get('/brands')).data.find((b) => b.id === brandId).gstin, '29AAGCB7383J1Z4');
+    });
   });
 
   describe('post lifecycle', () => {
@@ -208,7 +257,7 @@ describe('API', { skip }, () => {
     });
 
     test('queue with no slots explains itself', async () => {
-      const brand = (await owner.post('/brands', { name: 'Empty' })).data;
+      const brand = (await owner.post('/brands', { name: 'Empty', gstin: GSTIN })).data;
       await owner.put(`/brands/${brand.id}/slots`, { slots: [] });
       const ch = (await owner.post(`/brands/${brand.id}/channels`, { platform: 'linkedin', handle: 'e' })).data;
       const p = (await owner.post('/posts', { brand_id: brand.id, content: 'x', channel_ids: [ch.id] })).data;
@@ -772,7 +821,7 @@ describe('API', { skip }, () => {
     });
 
     test('brand filter, use count and delete', async () => {
-      const other = (await owner.post('/brands', { name: 'Second brand' })).data;
+      const other = (await owner.post('/brands', { name: 'Second brand', gstin: GSTIN })).data;
       const scoped = (await editor.post('/library', { title: 'Only second', body: 'x', brand_id: other.id })).data;
       const forFirst = (await editor.get(`/library?brand_id=${brandId}`)).data.items.map((x) => x.id);
       assert.ok(forFirst.includes(item.id) && !forFirst.includes(scoped.id));
